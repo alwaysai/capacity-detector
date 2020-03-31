@@ -1,0 +1,26 @@
+{
+    "model_id": "alwaysai/res10_300x300_ssd_iter_140000",
+    "mode": "camera",
+    "camera_id": 1,
+    "filename": "test.mov",
+    "enable_streamer": false,
+    "target_labels": [
+        "Person"
+    ],
+    "entry_areas": [
+        {
+            "start_x": 0,
+            "start_y": 0,
+            "end_x": 100,
+            "end_y": 100
+        }
+    ],
+    "exit_areas": [
+        {
+            "start_x": 200,
+            "start_y": 200,
+            "end_x": 300,
+            "end_y": 300
+        }
+    ]
+}
