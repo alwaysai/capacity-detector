@@ -4,7 +4,7 @@
     "camera_id": 0,
     "filename": "test.mov",
     "enable_streamer": true,
-    "deregister_frames": 50,
+    "deregister_frames": 10,
     "max_distance": 50,
     "target_labels": [
         "person"

@@ -15,10 +15,17 @@ def detection_began():
     '''
     print('app.py: detection_began:')
 
+object_ids = {}
 def object_detected(object_id, label, center):
     '''
     '''
     print('app.py: object_detected: label: {}: object_id: {} center: {}'.format(label, object_id, center))
+
+    # Enable to only report the first instance of a detection
+    # prior = object_ids.get(object_id, False)
+    # if prior is False:
+    #     print('app.py: object_detected: label: {}: object_id: {} center: {}'.format(label, object_id, center))
+    #     object_ids[object_id] = True
 
 def objects_lost(list_of_objects):
     '''

@@ -61,6 +61,111 @@ def start_detection(config, did_start_callback, detection_callback, detection_lo
         streamer = edgeiq.Streamer()
     start_video_detection_with_streamer(vs, od_config, od, streamer, t, did_start_callback, detection_callback, detection_lost_callback)
 
+def start_video_detection_with_streamer(
+        video_stream,
+        od_config,
+        object_detector,
+        streamer,
+        centroid_tracker,
+        did_start_callback,
+        detection_callback,
+        detection_lost_callback):
+    '''
+    Start video detection with browser accessible streamer enabled
+    '''
+    labels = od_config.target_labels
+
+    # Store list of object_ids detected in prior cycle
+    last_detected_ids = []
+    try:
+        video_stream.start()
+        streamer.setup()
+        did_start_callback()
+        displayed_frame_size = False
+        while True:
+            frame = video_stream.read()
+
+            # Print out the frame size
+            if displayed_frame_size == False:
+                height, width, channels = frame.shape
+                print('alwaysai.py: start_video_detection_with_streamer: frame h x w: {} x {}'.format(height, width))
+                displayed_frame_size = True
+
+            # Run the object detector
+            results = object_detector.detect_objects(
+                frame, confidence_level=od_config.confidence)
+            predictions = results.predictions
+
+            # Filter by target labels if arg passed in
+            if labels:
+                predictions = edgeiq.filter_predictions_by_label(
+                    predictions, labels)
+            
+            # Update the tracker so we can id each instance of an object
+            tracked_predictions = centroid_tracker.update(predictions).items()
+
+            # Create a list of current tracked prediction object ids
+            tracked_prediction_ids = [object_id for object_id, _ in tracked_predictions]
+
+            #  Enable to blank out current tracked ids based on zero results from object detector
+            # if len(predictions) > 0:
+            #     # The centroid tracker doesn't blank itself out for the last known
+            #     #  detected object
+            #     tracked_prediction_ids = [object_id for object_id, _ in tracked_predictions]
+            # else:
+            #     tracked_prediction_ids = []
+
+            # Checked for lost predictions by comparing the current list against the
+            #  last cycle's detected list
+            lost_ids = lost_object_ids(tracked_prediction_ids, last_detected_ids)
+            if len(lost_ids) > 0:
+                detection_lost_callback(lost_ids)
+
+            # Assign current ids to last detected for reference in the next loop
+            last_detected_ids = copy.deepcopy(tracked_prediction_ids)
+
+            # Notify callback of connections
+            marked_predictions = []
+            for (object_id, prediction) in tracked_predictions:                
+                detection_callback(object_id, prediction.label, prediction.box.center)
+
+                prediction.label = "Person {}".format(object_id)
+                marked_predictions.append(prediction)
+
+            frame = edgeiq.markup_image(
+                frame, marked_predictions, show_labels=True,
+                show_confidences=False, colors=object_detector.colors)
+
+            # Streamer Info
+            text = []
+            text.append("Model: {}".format(object_detector.model_id))
+            text.append(
+                "Inference time: {:1.3f} s".format(results.duration))
+            streamer.send_data(frame, text)
+
+            # Check exit conditions
+            # File video streams need to check for additional frames before stopping
+            more = getattr(video_stream, "more", None)
+            if callable(more):
+                if video_stream.more() == False:
+                    break
+            if streamer.check_exit():
+                break
+    finally:
+        video_stream.stop()
+        streamer.close()
+
+def lost_object_ids(current_ids, last_ids):
+    if len(last_ids) == 0:
+        # print('alwaysai.py: lost_object_ids: No ids listed in last_ids')
+        return []
+    lost = list(set(last_ids) - set(current_ids))
+    if len(lost) == 0:
+        # print('alwaysai.py: lost_object_ids: No lost ids detected between current: {} and last: {}:'.format(current_ids, last_ids))
+        return []
+    return lost
+
+# SIMPLE IMPLEMENTATION
 # def start_video_detection(
 #         video_stream,
 #         od_config: alwaysai_configs.ObjectDetector,
@@ -85,72 +190,3 @@ def start_detection(config, did_start_callback, detection_callback, detection_lo
 
 #     finally:
 #         video_stream.stop()
-
-
-
-def start_video_detection_with_streamer(
-        video_stream,
-        od_config,
-        object_detector,
-        streamer,
-        centroid_tracker,
-        did_start_callback,
-        detection_callback,
-        detection_lost_callback):
-    '''
-    Start video detection with browser accessible streamer enabled
-    '''
-    labels = od_config.target_labels
-
-    # Store list of object_ids detected in prior cycle
-    last_detected_ids = []
-    try:
-        video_stream.start()
-        streamer.setup()
-        did_start_callback()
-        while True:
-            frame = video_stream.read()
-            # print('alwaysai.py: start_video_detection_with_streamer: frame: {}'.format(frame))
-            results = object_detector.detect_objects(
-                frame, confidence_level=od_config.confidence)
-            predictions = results.predictions
-
-            # If target labels passed in, filter for them
-            if labels:
-                predictions = edgeiq.filter_predictions_by_label(
-                    predictions, labels)
-            
-            tracked_predictions = centroid_tracker.update(predictions).items()
-
-            # Check for objects no longer being tracked
-            tracked_prediction_ids = [object_id for object_id, _ in tracked_predictions]
-            # print('alwaysai.py: tracked_prediction_ids: {}'.format(tracked_prediction_ids))
-            # print('alwaysai.py: last_detected_ids: {}'.format(last_detected_ids))
-            if len(last_detected_ids) > 0:
-                lost = list(set(tracked_prediction_ids) - set(last_detected_ids))
-                if len(lost) > 0:
-                    detection_lost_callback(lost)            
-            last_detected_ids = tracked_prediction_ids
-
-            text = []
-            text.append("Model: {}".format(object_detector.model_id))
-            text.append(
-                "Inference time: {:1.3f} s".format(results.duration))
-            for (object_id, prediction) in tracked_predictions:
-                detection_callback(object_id, prediction.label, prediction.box.center)
-
-            frame = edgeiq.markup_image(
-                frame, predictions, show_labels=True,
-                show_confidences=False, colors=object_detector.colors)
-            streamer.send_data(frame, text)
-
-            # File video streams need to check for additional frames before stopping
-            more = getattr(video_stream, "more", None)
-            if callable(more):
-                if video_stream.more() == False:
-                    break
-            if streamer.check_exit():
-                break
-    finally:
-        video_stream.stop()
-        streamer.close()
