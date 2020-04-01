@@ -1,7 +1,7 @@
 
 import edgeiq
 import alwaysai_configs
-
+import copy
 
 def engine():
     """Switch Engine modes if an Intel accelerator is available"""
@@ -101,27 +101,43 @@ def start_video_detection_with_streamer(
     Start video detection with browser accessible streamer enabled
     '''
     labels = od_config.target_labels
+
+    # Store list of object_ids detected in prior cycle
+    last_detected_ids = []
     try:
         video_stream.start()
         streamer.setup()
         did_start_callback()
         while True:
             frame = video_stream.read()
-            print('alwaysai.py: start_video_detection_with_streamer: frame: {}'.format(frame))
+            # print('alwaysai.py: start_video_detection_with_streamer: frame: {}'.format(frame))
             results = object_detector.detect_objects(
                 frame, confidence_level=od_config.confidence)
             predictions = results.predictions
 
-            # TODO: Add centroid tracker back in
+            # If target labels passed in, filter for them
             if labels:
                 predictions = edgeiq.filter_predictions_by_label(
                     predictions, labels)
+            
+            tracked_predictions = centroid_tracker.update(predictions).items()
+
+            # Check for objects no longer being tracked
+            tracked_prediction_ids = [object_id for object_id, _ in tracked_predictions]
+            # print('alwaysai.py: tracked_prediction_ids: {}'.format(tracked_prediction_ids))
+            # print('alwaysai.py: last_detected_ids: {}'.format(last_detected_ids))
+            if len(last_detected_ids) > 0:
+                lost = list(set(tracked_prediction_ids) - set(last_detected_ids))
+                if len(lost) > 0:
+                    detection_lost_callback(lost)            
+            last_detected_ids = tracked_prediction_ids
+
             text = []
             text.append("Model: {}".format(object_detector.model_id))
             text.append(
                 "Inference time: {:1.3f} s".format(results.duration))
-            for prediction in predictions:
-                detection_callback("test", prediction.label, prediction.box.center)
+            for (object_id, prediction) in tracked_predictions:
+                detection_callback(object_id, prediction.label, prediction.box.center)
 
             frame = edgeiq.markup_image(
                 frame, predictions, show_labels=True,

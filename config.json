@@ -1,11 +1,13 @@
 {
-    "model_id": "alwaysai/res10_300x300_ssd_iter_140000",
+    "model_id": "alwaysai/squeezenet_ssd",
     "mode": "camera",
-    "camera_id": 1,
+    "camera_id": 0,
     "filename": "test.mov",
-    "enable_streamer": false,
+    "enable_streamer": true,
+    "deregister_frames": 50,
+    "max_distance": 50,
     "target_labels": [
-        "Person"
+        "person"
     ],
     "entry_areas": [
         {
