@@ -4,25 +4,27 @@
     "camera_id": 0,
     "filename": "test.mov",
     "enable_streamer": true,
-    "deregister_frames": 10,
+    "deregister_frames": 50,
     "max_distance": 50,
     "target_labels": [
         "person"
     ],
-    "entry_areas": [
+    "entry_boxes": [
         {
+            "threshold": 0.2,
             "start_x": 0,
             "start_y": 0,
-            "end_x": 100,
-            "end_y": 100
+            "end_x": 300,
+            "end_y": 720
         }
     ],
-    "exit_areas": [
+    "exit_boxes": [
         {
-            "start_x": 200,
-            "start_y": 200,
-            "end_x": 300,
-            "end_y": 300
+            "threshold": 0.2,
+            "start_x": 1000,
+            "start_y": 0,
+            "end_x": 1280,
+            "end_y": 720
         }
     ]
 }

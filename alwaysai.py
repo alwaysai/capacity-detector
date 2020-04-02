@@ -35,9 +35,19 @@ def object_detector(model, should_log=True):
     return od
 
 
-def start_detection(config, did_start_callback, detection_callback, detection_lost_callback, should_log=True):
+ENTER_CALLBACK = None
+EXIT_CALLBACK = None
+
+# def start_detection(config, did_start_callback, detection_callback, detection_lost_callback, should_log=True):
+def start_detection(config, did_start_callback, enter_callback, exit_callback, should_log=True):
     '''
     '''
+    global ENTER_CALLBACK
+    global EXIT_CALLBACK
+    ENTER_CALLBACK = enter_callback
+    EXIT_CALLBACK = exit_callback
+
+    # Configs
     od_config = alwaysai_configs.ObjectDetector(config)
     ct_config = alwaysai_configs.CentroidTracker(config)
     vs_config = alwaysai_configs.VideoStream(config)
@@ -45,7 +55,16 @@ def start_detection(config, did_start_callback, detection_callback, detection_lo
     t = edgeiq.CentroidTracker(
         deregister_frames=ct_config.deregister_frames, max_distance=ct_config.max_distance
     )
+    en_zones_config = config.get('entry_boxes', [])
+    ex_zones_config = config.get('exit_boxes', [])
+    entry_zones = zones_from_config(en_zones_config)
+    exit_zones = zones_from_config(ex_zones_config)
     vs = None
+
+    print('alwaysai.py: start_detection: en_zones_config: {}'.format(en_zones_config))
+    print('alwaysai.py: start_detection: entry_zones: {}'.format(entry_zones))
+
+    # Inits
     if vs_config.mode == 'camera':
         if should_log:
             print('alwaysai.py: start_detection: enabling camera w/ id: {}'.format(vs_config.camera_id))
@@ -59,7 +78,13 @@ def start_detection(config, did_start_callback, detection_callback, detection_lo
     if enable_streamer:
         print('alwaysai.py: start_detection: ENABLING streamer')
         streamer = edgeiq.Streamer()
-    start_video_detection_with_streamer(vs, od_config, od, streamer, t, did_start_callback, detection_callback, detection_lost_callback)
+
+    # Start
+    start_video_detection_with_streamer(vs, od_config, od, streamer, t, entry_zones, exit_zones, did_start_callback, did_detect)
+
+def did_detect(tuple_list, entry_zones, exit_zones):
+    # print('alwaysai.py: did_detect: {}'.format(tuple_list))
+    return None
 
 def start_video_detection_with_streamer(
         video_stream,
@@ -67,9 +92,10 @@ def start_video_detection_with_streamer(
         object_detector,
         streamer,
         centroid_tracker,
+        entry_zones,
+        exit_zones,
         did_start_callback,
-        detection_callback,
-        detection_lost_callback):
+        detection_callback):
     '''
     Start video detection with browser accessible streamer enabled
     '''
@@ -82,6 +108,9 @@ def start_video_detection_with_streamer(
         streamer.setup()
         did_start_callback()
         displayed_frame_size = False
+        entry_predictions = entry_predictions_from(entry_zones)
+        exit_predictions = exit_predictions_from(exit_zones)
+        print('alwaysai.py: start_video_detection_with_streamer: entry_predictions: {}'.format(entry_predictions))
         while True:
             frame = video_stream.read()
 
@@ -104,39 +133,27 @@ def start_video_detection_with_streamer(
             # Update the tracker so we can id each instance of an object
             tracked_predictions = centroid_tracker.update(predictions).items()
 
-            # Create a list of current tracked prediction object ids
-            tracked_prediction_ids = [object_id for object_id, _ in tracked_predictions]
-
-            #  Enable to blank out current tracked ids based on zero results from object detector
-            # if len(predictions) > 0:
-            #     # The centroid tracker doesn't blank itself out for the last known
-            #     #  detected object
-            #     tracked_prediction_ids = [object_id for object_id, _ in tracked_predictions]
-            # else:
-            #     tracked_prediction_ids = []
-
-            # Checked for lost predictions by comparing the current list against the
-            #  last cycle's detected list
-            lost_ids = lost_object_ids(tracked_prediction_ids, last_detected_ids)
-            if len(lost_ids) > 0:
-                detection_lost_callback(lost_ids)
-
-            # Assign current ids to last detected for reference in the next loop
-            last_detected_ids = copy.deepcopy(tracked_prediction_ids)
-
             # Notify callback of connections
             marked_predictions = []
             for (object_id, prediction) in tracked_predictions:                
-                detection_callback(object_id, prediction.label, prediction.box.center)
-
                 prediction.label = "Person {}".format(object_id)
                 marked_predictions.append(prediction)
 
+            if len(tracked_predictions) != 0:
+                detection_callback(tracked_predictions, entry_zones, exit_zones)
+            
+            # Update image and info for debug streamer 
             frame = edgeiq.markup_image(
                 frame, marked_predictions, show_labels=True,
                 show_confidences=False, colors=object_detector.colors)
-
-            # Streamer Info
+            frame = edgeiq.markup_image(
+                frame, entry_predictions, show_labels=True,
+                show_confidences=False, colors=[(0, 255, 0)])
+            frame = edgeiq.markup_image(
+                frame, exit_predictions, show_labels=True,
+                show_confidences=False, colors=[(0,0,255)])
+            frame = edgeiq.transparent_overlay_boxes(frame, entry_predictions, alpha=0.2, colors=[(0, 200, 0)])
+            frame = edgeiq.transparent_overlay_boxes(frame, exit_predictions, alpha=0.2, colors=[(0,0,200)])
             text = []
             text.append("Model: {}".format(object_detector.model_id))
             text.append(
@@ -155,15 +172,53 @@ def start_video_detection_with_streamer(
         video_stream.stop()
         streamer.close()
 
-def lost_object_ids(current_ids, last_ids):
-    if len(last_ids) == 0:
-        # print('alwaysai.py: lost_object_ids: No ids listed in last_ids')
-        return []
-    lost = list(set(last_ids) - set(current_ids))
-    if len(lost) == 0:
-        # print('alwaysai.py: lost_object_ids: No lost ids detected between current: {} and last: {}:'.format(current_ids, last_ids))
-        return []
-    return lost
+
+def entry_predictions_from(zones):
+    '''
+    Converts entry zones into predictions for use in marking up image
+    '''
+    # result = [edgeiq.ObjectDetectionPrediction(zone.box,1.0,"ENTRY_ZONE: Threshold {}".format(zone.threshold)) for zone in zones]
+    result = []
+    for i, zone in enumerate(zones):
+        record = edgeiq.ObjectDetectionPrediction(zone.box, 1.0, "ENTRY_ZONE: Threshold {}".format(zone.threshold), 100 + i)
+        result.append(record)
+    return result
+
+def exit_predictions_from(zones):
+    '''
+    Converts exit zones into predictions for use in marking up image
+    '''
+    # result = [edgeiq.ObjectDetectionPrediction(zone.box,1.0,"EXIT_ZONE: Threshold {}".format(zone.threshold)) for zone in zones]
+    result = []
+    for i, zone in enumerate(zones):
+        record = edgeiq.ObjectDetectionPrediction(zone.box, 1.0, "EXIT_ZONE: Threshold {}".format(zone.threshold), 200 + i)
+        result.append(record)
+    return result
+
+def zones_from_config(zones_config):
+    # available_zones = [zone for zone in zones_list if zone.is_box_available()]
+    result = []
+    for zone_config in zones_config:
+        zone = alwaysai_configs.Zone(zone_config)
+        if zone.is_box_available()==False:
+            continue
+        zone.box = edgeiq.BoundingBox(zone.start_x, zone.start_y, zone.end_x, zone.end_y)
+        result.append(zone)
+    return result
+
+# def is_box_in_zones(box, zones):
+#     # print('alwaysai.py: is_box_in_zones: box: {} - zones: {}'.format(box, zones))
+#     for zone in zones:
+#         # print('alwaysai.py: is_box_in_zones: zone: {}'.format(box, zone))
+#         if zone.box is None:
+#                 zone.box = edgeiq.BoundingBox(zone.start_x, zone.start_y, zone.end_x, zone.end_y)
+#                 # print('alwaysai.py: is_box_in_zones: skipping zone with no bounding box')
+#                 # continue
+#         overlap = box.compute_overlap(zone.box)
+#         # print('alwaysai.py: is_box_in_zones: overlap: {} - threshold: {}'.format(overlap, zone.threshold))
+#         if overlap > zone.threshold:
+#             return True
+#     return False
 
 # SIMPLE IMPLEMENTATION
 # def start_video_detection(

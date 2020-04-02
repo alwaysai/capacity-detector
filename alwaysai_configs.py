@@ -55,3 +55,40 @@ class DummyStreamer:
 
     def close(self):
         pass
+
+def zones_from(list_of_zone_info):
+    # result = [Zone(zone_info) for zone_info in list_of_zone_info]
+    result = []
+    for zone_info in list_of_zone_info:
+        zone = Zone(zone_info)
+        result.append(zone)
+    return result   
+
+class Zone:
+    '''
+    '''
+    def __init__(self, config):
+        self.threshold = config.get('threshold', 0.5)
+        self.start_x = config.get('start_x', None)
+        self.start_y = config.get('start_y', None)
+        self.end_x = config.get('end_x', None)
+        self.end_y = config.get('end_y', None)
+        self.box = None
+
+    def __repr__(self):
+        return "Zone(threshold:{}, start_x:{}, start_y:{}, end_x:{}, end_y:{}, box:{}".format(self.threshold, self.start_x, self.start_y, self.end_x, self.end_y, self.box)
+
+    def __str__(self):
+        return "Zone.str(threshold:{}, start_x:{}, start_y:{}, end_x:{}, end_y:{}, box:{}".format(self.threshold, self.start_x, self.start_y, self.end_x, self.end_y, self.box)
+
+    def is_box_available(self):
+        # TODO: Check for correct value as well
+        if self.start_x is None:
+            return False
+        if self.start_y is None:
+            return False
+        if self.end_x is None:
+            return False
+        if self.end_y is None:
+            return False
+        return True
