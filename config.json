@@ -1,24 +1,26 @@
 {
-    "model_id": "alwaysai/squeezenet_ssd",
-    "mode": "camera",
+    "model_id": "alwaysai/mobilenet_ssd",
+    "mode": "file",
     "camera_id": 0,
-    "filename": "test.mov",
+    "filename": "curved_hallway.mp4",
+    "server_url": "http://localhost:8888",
+    "confidence": 0.3,
     "enable_streamer": true,
-    "deregister_frames": 50,
-    "max_distance": 50,
+    "deregister_frames": 80,
+    "max_distance": 80,
     "target_labels": [
         "person"
     ],
-    "entry_boxes": [
+    "entry_zones": [
         {
             "threshold": 0.2,
-            "start_x": 0,
-            "start_y": 0,
-            "end_x": 300,
-            "end_y": 720
+            "start_x": 400,
+            "start_y": 200,
+            "end_x": 650,
+            "end_y": 400
         }
     ],
-    "exit_boxes": [
+    "exit_zones": [
         {
             "threshold": 0.2,
             "start_x": 1000,

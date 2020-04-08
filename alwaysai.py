@@ -46,6 +46,7 @@ def start_detection(config, did_start_callback, enter_callback, exit_callback, s
     global EXIT_CALLBACK
     ENTER_CALLBACK = enter_callback
     EXIT_CALLBACK = exit_callback
+    print('alwaysai.py: start_detection: enter_callback: {}'.format(ENTER_CALLBACK))
 
     # Configs
     od_config = alwaysai_configs.ObjectDetector(config)
@@ -55,14 +56,14 @@ def start_detection(config, did_start_callback, enter_callback, exit_callback, s
     t = edgeiq.CentroidTracker(
         deregister_frames=ct_config.deregister_frames, max_distance=ct_config.max_distance
     )
-    en_zones_config = config.get('entry_boxes', [])
-    ex_zones_config = config.get('exit_boxes', [])
+    en_zones_config = config.get('entry_zones', [])
+    ex_zones_config = config.get('exit_zones', [])
     entry_zones = zones_from_config(en_zones_config)
     exit_zones = zones_from_config(ex_zones_config)
     vs = None
 
-    print('alwaysai.py: start_detection: en_zones_config: {}'.format(en_zones_config))
-    print('alwaysai.py: start_detection: entry_zones: {}'.format(entry_zones))
+    # print('alwaysai.py: start_detection: en_zones_config: {}'.format(en_zones_config))
+    # print('alwaysai.py: start_detection: entry_zones: {}'.format(entry_zones))
 
     # Inits
     if vs_config.mode == 'camera':
@@ -83,6 +84,19 @@ def start_detection(config, did_start_callback, enter_callback, exit_callback, s
     start_video_detection_with_streamer(vs, od_config, od, streamer, t, entry_zones, exit_zones, did_start_callback, did_detect)
 
 def did_detect(tuple_list, entry_zones, exit_zones):
+    '''
+    Determine if objects are coming or going
+    '''
+    global ENTER_CALLBACK
+    global EXIT_CALLBACK
+    for object_id, prediction in tuple_list:
+        box = prediction.box
+        if is_box_in_zones(box, entry_zones):
+            # print('alwaysai.py: did_detect: object_id {} in entry zone'.format(object_id))
+            ENTER_CALLBACK(object_id)
+        if is_box_in_zones(box, exit_zones):
+            # print('alwaysai.py: did_detect: object_id {} in exit zone'.format(object_id))
+            EXIT_CALLBACK(object_id)
     # print('alwaysai.py: did_detect: {}'.format(tuple_list))
     return None
 
@@ -110,7 +124,6 @@ def start_video_detection_with_streamer(
         displayed_frame_size = False
         entry_predictions = entry_predictions_from(entry_zones)
         exit_predictions = exit_predictions_from(exit_zones)
-        print('alwaysai.py: start_video_detection_with_streamer: entry_predictions: {}'.format(entry_predictions))
         while True:
             frame = video_stream.read()
 
@@ -130,6 +143,12 @@ def start_video_detection_with_streamer(
                 predictions = edgeiq.filter_predictions_by_label(
                     predictions, labels)
             
+            # Simple - without zones
+            # marked_predictions = []
+            # for prediction in predictions:                
+            #     marked_predictions.append(prediction)
+
+
             # Update the tracker so we can id each instance of an object
             tracked_predictions = centroid_tracker.update(predictions).items()
 
@@ -143,22 +162,23 @@ def start_video_detection_with_streamer(
                 detection_callback(tracked_predictions, entry_zones, exit_zones)
             
             # Update image and info for debug streamer 
-            frame = edgeiq.markup_image(
-                frame, marked_predictions, show_labels=True,
-                show_confidences=False, colors=object_detector.colors)
-            frame = edgeiq.markup_image(
-                frame, entry_predictions, show_labels=True,
-                show_confidences=False, colors=[(0, 255, 0)])
-            frame = edgeiq.markup_image(
-                frame, exit_predictions, show_labels=True,
-                show_confidences=False, colors=[(0,0,255)])
-            frame = edgeiq.transparent_overlay_boxes(frame, entry_predictions, alpha=0.2, colors=[(0, 200, 0)])
-            frame = edgeiq.transparent_overlay_boxes(frame, exit_predictions, alpha=0.2, colors=[(0,0,200)])
-            text = []
-            text.append("Model: {}".format(object_detector.model_id))
-            text.append(
-                "Inference time: {:1.3f} s".format(results.duration))
-            streamer.send_data(frame, text)
+            if isinstance(streamer, edgeiq.Streamer):
+                frame = edgeiq.markup_image(
+                    frame, marked_predictions, show_labels=True,
+                    show_confidences=False, colors=object_detector.colors)
+                frame = edgeiq.markup_image(
+                    frame, entry_predictions, show_labels=True,
+                    show_confidences=False, colors=[(0, 255, 0)])
+                frame = edgeiq.markup_image(
+                    frame, exit_predictions, show_labels=True,
+                    show_confidences=False, colors=[(0,0,255)])
+                frame = edgeiq.transparent_overlay_boxes(frame, entry_predictions, alpha=0.2, colors=[(0, 200, 0)])
+                frame = edgeiq.transparent_overlay_boxes(frame, exit_predictions, alpha=0.2, colors=[(0,0,200)])
+                text = []
+                text.append("Model: {}".format(object_detector.model_id))
+                text.append(
+                    "Inference time: {:1.3f} s".format(results.duration))
+                streamer.send_data(frame, text)
 
             # Check exit conditions
             # File video streams need to check for additional frames before stopping
@@ -206,19 +226,19 @@ def zones_from_config(zones_config):
         result.append(zone)
     return result
 
-# def is_box_in_zones(box, zones):
-#     # print('alwaysai.py: is_box_in_zones: box: {} - zones: {}'.format(box, zones))
-#     for zone in zones:
-#         # print('alwaysai.py: is_box_in_zones: zone: {}'.format(box, zone))
-#         if zone.box is None:
-#                 zone.box = edgeiq.BoundingBox(zone.start_x, zone.start_y, zone.end_x, zone.end_y)
-#                 # print('alwaysai.py: is_box_in_zones: skipping zone with no bounding box')
-#                 # continue
-#         overlap = box.compute_overlap(zone.box)
-#         # print('alwaysai.py: is_box_in_zones: overlap: {} - threshold: {}'.format(overlap, zone.threshold))
-#         if overlap > zone.threshold:
-#             return True
-#     return False
+def is_box_in_zones(box, zones):
+    # print('alwaysai.py: is_box_in_zones: box: {} - zones: {}'.format(box, zones))
+    for zone in zones:
+        # print('alwaysai.py: is_box_in_zones: zone: {}'.format(box, zone))
+        if zone.box is None:
+            # zone.box = edgeiq.BoundingBox(zone.start_x, zone.start_y, zone.end_x, zone.end_y)
+            print('alwaysai.py: is_box_in_zones: skipping zone with no bounding box')
+            continue
+        overlap = box.compute_overlap(zone.box)
+        # print('alwaysai.py: is_box_in_zones: overlap: {} - threshold: {}'.format(overlap, zone.threshold))
+        if overlap >= zone.threshold:
+            return True
+    return False
 
 # SIMPLE IMPLEMENTATION
 # def start_video_detection(
