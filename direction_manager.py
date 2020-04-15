@@ -1,7 +1,7 @@
 import time
 
-ENTER_KEY = 'entered'
-EXIT_KEY = 'exited'
+ENTER_KEY = 'in_entry'
+EXIT_KEY = 'in_exit'
 
 class DirectionManager:
     '''

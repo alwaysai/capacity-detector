@@ -1,6 +1,6 @@
 {
     "model_id": "alwaysai/mobilenet_ssd",
-    "mode": "file",
+    "mode": "camera",
     "camera_id": 0,
     "device_id": 1,
     "filename": "walking_test_2.mov",
