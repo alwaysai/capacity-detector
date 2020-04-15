@@ -2,11 +2,14 @@
     "model_id": "alwaysai/mobilenet_ssd",
     "mode": "file",
     "camera_id": 0,
+    "device_id": 1,
     "filename": "walking_test_2.mov",
-    "server_url": "http://localhost:8888",
+    "server_entry_url": "http://localhost:8888/new_entry",
+    "server_exit_url": "http://localhost:8888/new_exit",
     "confidence": 0.3,
+    "enable_logs": true,
     "enable_streamer": true,
-    "deregister_frames": 80,
+    "deregister_frames": 30,
     "max_distance": 100,
     "target_labels": [
         "person"

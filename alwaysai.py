@@ -147,11 +147,6 @@ def start_video_detection_with_streamer(
             if labels:
                 predictions = edgeiq.filter_predictions_by_label(
                     predictions, labels)
-            
-            # Simple - without zones
-            # marked_predictions = []
-            # for prediction in predictions:                
-            #     marked_predictions.append(prediction)
 
             # Update the tracker so we can id each instance of an object
             current_track = centroid_tracker.update(predictions)
@@ -163,10 +158,10 @@ def start_video_detection_with_streamer(
             # Find diff in object ids to see if we've stopped tracking anything
             current_keys = current_track.keys()
             prior_keys = prior_track.keys()
-            diff_keys = current_keys - prior_keys
+            diff_keys = prior_keys - current_keys
             if len(diff_keys) != 0:
                 tracked_predictions = prior_track.items()
-                print('alwaysai.py: start_video_detection_with_streamer: diff_keys: {}. prior_tracks: {}'.format(diff_keys, tracked_predictions))
+                # print('alwaysai.py: start_video_detection_with_streamer: diff_keys: {}. prior_tracks: {}'.format(diff_keys, tracked_predictions))
                 did_end_object_callback(list(diff_keys))
             
             prior_track = copy.deepcopy(current_track)
