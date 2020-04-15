@@ -39,7 +39,7 @@ ENTER_CALLBACK = None
 EXIT_CALLBACK = None
 
 # def start_detection(config, did_start_callback, detection_callback, detection_lost_callback, should_log=True):
-def start_detection(config, did_start_callback, enter_callback, exit_callback, should_log=True):
+def start_detection(config, did_start_callback, enter_callback, exit_callback, did_end_object_callback, should_log=True):
     '''
     '''
     global ENTER_CALLBACK
@@ -81,12 +81,13 @@ def start_detection(config, did_start_callback, enter_callback, exit_callback, s
         streamer = edgeiq.Streamer()
 
     # Start
-    start_video_detection_with_streamer(vs, od_config, od, streamer, t, entry_zones, exit_zones, did_start_callback, did_detect)
+    start_video_detection_with_streamer(vs, od_config, od, streamer, t, entry_zones, exit_zones, did_start_callback, did_detect, did_end_object_callback)
 
 def did_detect(tuple_list, entry_zones, exit_zones):
     '''
     Determine if objects are coming or going
     '''
+    # print('alwaysai.py: did_detect: entry zones: {}'.format(entry_zones))
     global ENTER_CALLBACK
     global EXIT_CALLBACK
     for object_id, prediction in tuple_list:
@@ -109,28 +110,32 @@ def start_video_detection_with_streamer(
         entry_zones,
         exit_zones,
         did_start_callback,
-        detection_callback):
+        detection_callback,
+        did_end_object_callback):
     '''
     Start video detection with browser accessible streamer enabled
     '''
     labels = od_config.target_labels
+    displayed_frame_size = False
 
-    # Store list of object_ids detected in prior cycle
-    last_detected_ids = []
     try:
         video_stream.start()
-        streamer.setup()
+        streamer_enabled = isinstance(streamer, edgeiq.Streamer)
+        if streamer_enabled:
+            entry_predictions = entry_predictions_from(entry_zones)
+            exit_predictions = exit_predictions_from(exit_zones)
+            streamer.setup()
         did_start_callback()
-        displayed_frame_size = False
-        entry_predictions = entry_predictions_from(entry_zones)
-        exit_predictions = exit_predictions_from(exit_zones)
+
+        prior_track = {}
+
         while True:
             frame = video_stream.read()
 
             # Print out the frame size
-            if displayed_frame_size == False:
+            if displayed_frame_size == True:
                 height, width, channels = frame.shape
-                print('alwaysai.py: start_video_detection_with_streamer: frame h x w: {} x {}'.format(height, width))
+                print('alwaysai.py: start_video_detection_with_streamer: frame w x h: {} x {}'.format(width, height))
                 displayed_frame_size = True
 
             # Run the object detector
@@ -148,21 +153,30 @@ def start_video_detection_with_streamer(
             # for prediction in predictions:                
             #     marked_predictions.append(prediction)
 
-
             # Update the tracker so we can id each instance of an object
-            tracked_predictions = centroid_tracker.update(predictions).items()
+            current_track = centroid_tracker.update(predictions)
 
-            # Notify callback of connections
-            marked_predictions = []
-            for (object_id, prediction) in tracked_predictions:                
-                prediction.label = "Person {}".format(object_id)
-                marked_predictions.append(prediction)
+            if len(predictions) > 0:
+                # print('alwaysai.py: start_video_detection_with_streamer: objects detected: {}'.format(current_track.items()))
+                detection_callback(current_track.items(), entry_zones, exit_zones)
 
-            if len(tracked_predictions) != 0:
-                detection_callback(tracked_predictions, entry_zones, exit_zones)
+            # Find diff in object ids to see if we've stopped tracking anything
+            current_keys = current_track.keys()
+            prior_keys = prior_track.keys()
+            diff_keys = current_keys - prior_keys
+            if len(diff_keys) != 0:
+                tracked_predictions = prior_track.items()
+                print('alwaysai.py: start_video_detection_with_streamer: diff_keys: {}. prior_tracks: {}'.format(diff_keys, tracked_predictions))
+                did_end_object_callback(list(diff_keys))
             
+            prior_track = copy.deepcopy(current_track)
+
             # Update image and info for debug streamer 
-            if isinstance(streamer, edgeiq.Streamer):
+            if streamer_enabled:
+                marked_predictions = []
+                for (object_id, prediction) in current_track.items():                
+                    prediction.label = "Person {}".format(object_id)
+                    marked_predictions.append(prediction)
                 frame = edgeiq.markup_image(
                     frame, marked_predictions, show_labels=True,
                     show_confidences=False, colors=object_detector.colors)
@@ -183,9 +197,9 @@ def start_video_detection_with_streamer(
             # Check exit conditions
             # File video streams need to check for additional frames before stopping
             more = getattr(video_stream, "more", None)
-            if callable(more):
-                if video_stream.more() == False:
-                    break
+            if callable(more) and video_stream.more() == False:
+                print('alwaysai.py: start_video_detection_with_streamer: file video stream ended')
+                break
             if streamer.check_exit():
                 break
     finally:
