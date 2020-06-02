@@ -5,9 +5,11 @@ This application is meant to detect people from a live or recorded videostream a
 **ENTRY-EXIT ZONES**
 The app uses configurable entry and exit zones to determine if someone is entering or exiting a location. Zones are made up of rectangular areas in the video frame. Multiple entry and exit zones may be added to fit complex environments.
 
--*ENTER CRITERIA*: When a detected person crosses from an entry to an exit zone, then disappears from tracking.
--*EXIT CRITERIA*: When a detected person crosses from exit to an entry zone, then disappears from tracking.
--*IGNORE CRITERIA*: Any detected person who does not cross both an entry and exit zone before tracking of them ends.
+*ENTER CRITERIA*: When a detected person crosses from an entry to an exit zone, then disappears from tracking.
+
+*EXIT CRITERIA*: When a detected person crosses from exit to an entry zone, then disappears from tracking.
+
+*IGNORE CRITERIA*: Any detected person who does not cross both an entry and exit zone before tracking of them ends.
 
 **JSON PAYLOAD**
 When either an entry or exit is detected, the app will send a call to the URL endpoints designated in the `config.json` file. The payload consists of the following:
