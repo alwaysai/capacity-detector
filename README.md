@@ -2,19 +2,16 @@
 This application is meant to detect people from a live or recorded videostream and determine if they are entering or exiting a location. That info is then can be sent via a POST call to a URL endpoint for processing.
 
 
-## ENTRY-EXIT ZONES
+**ENTRY-EXIT ZONES**
 The app uses configurable entry and exit zones to determine if someone is entering or exiting a location. Zones are made up of rectangular areas in the video frame. Multiple entry and exit zones may be added to fit complex environments.
 
-ENTER CRITERIA:
-When a detected person crosses from an entry to an exit zone, then disappears from tracking.
+ENTER CRITERIA: When a detected person crosses from an entry to an exit zone, then disappears from tracking.
 
-EXIT CRITERIA:
-When a detected person crosses from exit to an entry zone, then disappears from tracking.
+EXIT CRITERIA: When a detected person crosses from exit to an entry zone, then disappears from tracking.
 
-IGNORE CRITERIA:
-- Any detected person who does not cross both an entry and exit zone before tracking of them ends.
+IGNORE CRITERIA: Any detected person who does not cross both an entry and exit zone before tracking of them ends.
 
-## JSON PAYLOAD
+**JSON PAYLOAD**
 When either an entry or exit is detected, the app will send a call to the URL endpoints designated in the `config.json` file. The payload consists of the following:
 ```
 {
@@ -37,9 +34,11 @@ Edit the `config.json` file to adjust the following parameters:
 
 | PARAMETER         | DESCRIPTION                                                                                                                                                                                          | DEFAULT            | REQUIRED |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | -------- |
-| entry_boxes       | List of dictionaries defining bounding boxes for parts of a frame where targets will be entering from                                                                                                | None               | Yes      |
-| exit_boxes        | List of dictionaries defining bounding boxes for parts of the frame where targets exiting a location will be last seen                                                                               | None               | Yes      |
 | camera_id         | Id of camera to use for camera detection. 0 if only one camera attached. 0 is usually the id for a built-in web cam, and 1 or higher if usb external cams are used in addition to an embedded camera | 0                  | No       |
+| confidence        | Threshold for accepting a detection as valid                                                                                                                                                         | 0.5                | No       |
+| enable_logs       | Should print to console additional info                                                                                                                                                              | True               | No       |
+| entry_zones       | List of dictionaries defining bounding zones for parts of a frame where targets will be entering from                                                                                                | None               | Yes      |
+| exit_zones        | List of dictionaries defining bounding zones for parts of the frame where targets exiting a location will be last seen                                                                               | None               | Yes      |
 | device_id         | Optional identifier for a different instance of the detector for multi-cam set ups                                                                                                                   | Device MAC Address | No       |
 | deregister_frames | Number of frames to count past last seen before a centroid tracker should consider an object lost                                                                                                    | 50                 | No       |
 | enable_streamer   | Enable streamer to display vision output to `localhost:5000`                                                                                                                                         | false              | No       |
@@ -47,6 +46,8 @@ Edit the `config.json` file to adjust the following parameters:
 | max_distance      | Maximum distance in pixels that a centroid tracker will search to maintain tracking on an object                                                                                                     | 50                 | No       |
 | mode              | `Camera` or `File` supported. When using `File`, you must also provide a `filename` value                                                                                                            | Camera             | No       |
 | model_id          | Model id to use for detecting target labels. If only 1 model specified in the `alwaysai.app.json` file, `models` object, then this value should match                                                | None               | No       |
+| server_entry_url  | Endpoint for processing entry event                                                                                                                                                                  | None               | Yes      |
+| server_exit_url   | Endpoint for processing exit event                                                                                                                                                                   | None               | Yes      |
 | target_labels     | List of string labels that the model should filter for. If not provided than object detector will not filter                                                                                         | ["Person"]         | No       |
 
 
