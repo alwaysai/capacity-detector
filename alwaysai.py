@@ -3,6 +3,7 @@ import edgeiq
 import alwaysai_configs
 import copy
 
+
 def engine():
     """Switch Engine modes if an Intel accelerator is available"""
     if is_accelerator_available() == True:
@@ -38,7 +39,7 @@ def object_detector(model, should_log=True):
 ENTER_CALLBACK = None
 EXIT_CALLBACK = None
 
-# def start_detection(config, did_start_callback, detection_callback, detection_lost_callback, should_log=True):
+
 def start_detection(config, did_start_callback, enter_callback, exit_callback, did_end_object_callback, should_log=True):
     '''
     '''
@@ -68,7 +69,8 @@ def start_detection(config, did_start_callback, enter_callback, exit_callback, d
     # Inits
     if vs_config.mode == 'camera':
         if should_log:
-            print('alwaysai.py: start_detection: enabling camera w/ id: {}'.format(vs_config.camera_id))
+            print(
+                'alwaysai.py: start_detection: enabling camera w/ id: {}'.format(vs_config.camera_id))
         vs = edgeiq.WebcamVideoStream(cam=vs_config.camera_id)
     if vs_config.mode == 'file':
         if should_log:
@@ -81,7 +83,9 @@ def start_detection(config, did_start_callback, enter_callback, exit_callback, d
         streamer = edgeiq.Streamer()
 
     # Start
-    start_video_detection_with_streamer(vs, od_config, od, streamer, t, entry_zones, exit_zones, did_start_callback, did_detect, did_end_object_callback)
+    start_video_detection_with_streamer(vs, od_config, od, streamer, t, entry_zones,
+                                        exit_zones, did_start_callback, did_detect, did_end_object_callback)
+
 
 def did_detect(tuple_list, entry_zones, exit_zones):
     '''
@@ -100,6 +104,7 @@ def did_detect(tuple_list, entry_zones, exit_zones):
             EXIT_CALLBACK(object_id)
     # print('alwaysai.py: did_detect: {}'.format(tuple_list))
     return None
+
 
 def start_video_detection_with_streamer(
         video_stream,
@@ -133,9 +138,10 @@ def start_video_detection_with_streamer(
             frame = video_stream.read()
 
             # Print out the frame size
-            if displayed_frame_size == True:
+            if displayed_frame_size == False:
                 height, width, channels = frame.shape
-                print('alwaysai.py: start_video_detection_with_streamer: frame w x h: {} x {}'.format(width, height))
+                print('alwaysai.py: start_video_detection_with_streamer: frame w x h: {} x {}'.format(
+                    width, height))
                 displayed_frame_size = True
 
             # Run the object detector
@@ -153,7 +159,8 @@ def start_video_detection_with_streamer(
 
             if len(predictions) > 0:
                 # print('alwaysai.py: start_video_detection_with_streamer: objects detected: {}'.format(current_track.items()))
-                detection_callback(current_track.items(), entry_zones, exit_zones)
+                detection_callback(current_track.items(),
+                                   entry_zones, exit_zones)
 
             # Find diff in object ids to see if we've stopped tracking anything
             current_keys = current_track.keys()
@@ -163,13 +170,13 @@ def start_video_detection_with_streamer(
                 tracked_predictions = prior_track.items()
                 # print('alwaysai.py: start_video_detection_with_streamer: diff_keys: {}. prior_tracks: {}'.format(diff_keys, tracked_predictions))
                 did_end_object_callback(list(diff_keys))
-            
+
             prior_track = copy.deepcopy(current_track)
 
-            # Update image and info for debug streamer 
+            # Update image and info for debug streamer
             if streamer_enabled:
                 marked_predictions = []
-                for (object_id, prediction) in current_track.items():                
+                for (object_id, prediction) in current_track.items():
                     prediction.label = "Person {}".format(object_id)
                     marked_predictions.append(prediction)
                 frame = edgeiq.markup_image(
@@ -180,9 +187,11 @@ def start_video_detection_with_streamer(
                     show_confidences=False, colors=[(0, 255, 0)])
                 frame = edgeiq.markup_image(
                     frame, exit_predictions, show_labels=True,
-                    show_confidences=False, colors=[(0,0,255)])
-                frame = edgeiq.transparent_overlay_boxes(frame, entry_predictions, alpha=0.2, colors=[(0, 200, 0)])
-                frame = edgeiq.transparent_overlay_boxes(frame, exit_predictions, alpha=0.2, colors=[(0,0,200)])
+                    show_confidences=False, colors=[(0, 0, 255)])
+                frame = edgeiq.transparent_overlay_boxes(
+                    frame, entry_predictions, alpha=0.2, colors=[(0, 200, 0)])
+                frame = edgeiq.transparent_overlay_boxes(
+                    frame, exit_predictions, alpha=0.2, colors=[(0, 0, 200)])
                 text = []
                 text.append("Model: {}".format(object_detector.model_id))
                 text.append(
@@ -193,7 +202,8 @@ def start_video_detection_with_streamer(
             # File video streams need to check for additional frames before stopping
             more = getattr(video_stream, "more", None)
             if callable(more) and video_stream.more() == False:
-                print('alwaysai.py: start_video_detection_with_streamer: file video stream ended')
+                print(
+                    'alwaysai.py: start_video_detection_with_streamer: file video stream ended')
                 break
             if streamer.check_exit():
                 break
@@ -209,9 +219,11 @@ def entry_predictions_from(zones):
     # result = [edgeiq.ObjectDetectionPrediction(zone.box,1.0,"ENTRY_ZONE: Threshold {}".format(zone.threshold)) for zone in zones]
     result = []
     for i, zone in enumerate(zones):
-        record = edgeiq.ObjectDetectionPrediction(zone.box, 1.0, "ENTRY_ZONE: Threshold {}".format(zone.threshold), 100 + i)
+        record = edgeiq.ObjectDetectionPrediction(
+            zone.box, 1.0, "ENTRY_ZONE: Threshold {}".format(zone.threshold), 100 + i)
         result.append(record)
     return result
+
 
 def exit_predictions_from(zones):
     '''
@@ -220,20 +232,24 @@ def exit_predictions_from(zones):
     # result = [edgeiq.ObjectDetectionPrediction(zone.box,1.0,"EXIT_ZONE: Threshold {}".format(zone.threshold)) for zone in zones]
     result = []
     for i, zone in enumerate(zones):
-        record = edgeiq.ObjectDetectionPrediction(zone.box, 1.0, "EXIT_ZONE: Threshold {}".format(zone.threshold), 200 + i)
+        record = edgeiq.ObjectDetectionPrediction(
+            zone.box, 1.0, "EXIT_ZONE: Threshold {}".format(zone.threshold), 200 + i)
         result.append(record)
     return result
+
 
 def zones_from_config(zones_config):
     # available_zones = [zone for zone in zones_list if zone.is_box_available()]
     result = []
     for zone_config in zones_config:
         zone = alwaysai_configs.Zone(zone_config)
-        if zone.is_box_available()==False:
+        if zone.is_box_available() == False:
             continue
-        zone.box = edgeiq.BoundingBox(zone.start_x, zone.start_y, zone.end_x, zone.end_y)
+        zone.box = edgeiq.BoundingBox(
+            zone.start_x, zone.start_y, zone.end_x, zone.end_y)
         result.append(zone)
     return result
+
 
 def is_box_in_zones(box, zones):
     # print('alwaysai.py: is_box_in_zones: box: {} - zones: {}'.format(box, zones))

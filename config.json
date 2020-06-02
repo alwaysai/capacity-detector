@@ -3,7 +3,7 @@
     "mode": "camera",
     "camera_id": 0,
     "device_id": 1,
-    "filename": "walking_test_2.mov",
+    "filename": "<.mov_or_.mp4_file>",
     "server_entry_url": "http://localhost:8888/new_entry",
     "server_exit_url": "http://localhost:8888/new_exit",
     "confidence": 0.3,
