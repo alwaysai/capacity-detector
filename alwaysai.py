@@ -41,8 +41,9 @@ EXIT_CALLBACK = None
 
 
 def start_detection(config, did_start_callback, enter_callback, exit_callback, did_end_object_callback, should_log=True):
-    '''
-    '''
+    """
+    Enable features dependent on config and pass callback down to actual detection functions
+    """
     global ENTER_CALLBACK
     global EXIT_CALLBACK
     ENTER_CALLBACK = enter_callback
@@ -88,9 +89,9 @@ def start_detection(config, did_start_callback, enter_callback, exit_callback, d
 
 
 def did_detect(tuple_list, entry_zones, exit_zones):
-    '''
+    """
     Determine if objects are coming or going
-    '''
+    """
     # print('alwaysai.py: did_detect: entry zones: {}'.format(entry_zones))
     global ENTER_CALLBACK
     global EXIT_CALLBACK
@@ -117,9 +118,9 @@ def start_video_detection_with_streamer(
         did_start_callback,
         detection_callback,
         did_end_object_callback):
-    '''
-    Start video detection with browser accessible streamer enabled
-    '''
+    """
+    Start video detection
+    """
     labels = od_config.target_labels
     displayed_frame_size = False
 
@@ -173,7 +174,7 @@ def start_video_detection_with_streamer(
 
             prior_track = copy.deepcopy(current_track)
 
-            # Update image and info for debug streamer
+            # Update image and info for debug streamer, if enabled
             if streamer_enabled:
                 marked_predictions = []
                 for (object_id, prediction) in current_track.items():
@@ -213,9 +214,9 @@ def start_video_detection_with_streamer(
 
 
 def entry_predictions_from(zones):
-    '''
+    """
     Converts entry zones into predictions for use in marking up image
-    '''
+    """
     # result = [edgeiq.ObjectDetectionPrediction(zone.box,1.0,"ENTRY_ZONE: Threshold {}".format(zone.threshold)) for zone in zones]
     result = []
     for i, zone in enumerate(zones):
@@ -226,9 +227,9 @@ def entry_predictions_from(zones):
 
 
 def exit_predictions_from(zones):
-    '''
+    """
     Converts exit zones into predictions for use in marking up image
-    '''
+    """
     # result = [edgeiq.ObjectDetectionPrediction(zone.box,1.0,"EXIT_ZONE: Threshold {}".format(zone.threshold)) for zone in zones]
     result = []
     for i, zone in enumerate(zones):
@@ -239,7 +240,7 @@ def exit_predictions_from(zones):
 
 
 def zones_from_config(zones_config):
-    # available_zones = [zone for zone in zones_list if zone.is_box_available()]
+    """Create bounding box objects for the entry & exit zones specified from the config"""
     result = []
     for zone_config in zones_config:
         zone = alwaysai_configs.Zone(zone_config)
@@ -252,7 +253,7 @@ def zones_from_config(zones_config):
 
 
 def is_box_in_zones(box, zones):
-    # print('alwaysai.py: is_box_in_zones: box: {} - zones: {}'.format(box, zones))
+    """Determine if an object bounding box is within a list of zones"""
     for zone in zones:
         # print('alwaysai.py: is_box_in_zones: zone: {}'.format(box, zone))
         if zone.box is None:

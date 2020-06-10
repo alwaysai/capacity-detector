@@ -1,9 +1,9 @@
 class CentroidTracker:
-    def __init__(self, config):
-        '''
-        '''
-        self.deregister_frames = config.get('deregister_frames', 50)
-        self.max_distance = config.get('max_distance', 50)
+        def __init__(self, config):
+            '''
+            '''
+            self.deregister_frames = config.get('deregister_frames', 50)
+            self.max_distance = config.get('max_distance', 50)
 
 
 class ObjectDetector:
@@ -56,17 +56,20 @@ class DummyStreamer:
     def close(self):
         pass
 
+
 def zones_from(list_of_zone_info):
     # result = [Zone(zone_info) for zone_info in list_of_zone_info]
     result = []
     for zone_info in list_of_zone_info:
         zone = Zone(zone_info)
         result.append(zone)
-    return result   
+    return result
+
 
 class Zone:
     '''
     '''
+
     def __init__(self, config):
         self.threshold = config.get('threshold', 0.5)
         self.start_x = config.get('start_x', None)
