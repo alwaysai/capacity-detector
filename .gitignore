@@ -1,2 +1,6 @@
 .DS_Store
 x_*
+alwaysai.target.json
+alwaysai.project.json
+venv
+models
