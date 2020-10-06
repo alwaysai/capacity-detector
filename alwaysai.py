@@ -13,8 +13,6 @@ def engine():
 
 def is_accelerator_available():
     """Detect if an Intel Neural Compute Stick accelerator is attached"""
-    if edgeiq.find_ncs1():
-        return True
     if edgeiq.find_ncs2():
         return True
     return False
