@@ -1,6 +1,4 @@
-
 from uuid import getnode as get_mac
-import os
 import post
 
 DEVICE_KEY = 'device_id'

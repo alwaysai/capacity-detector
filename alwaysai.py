@@ -6,7 +6,7 @@ import copy
 
 def engine():
     """Switch Engine modes if an Intel accelerator is available"""
-    if is_accelerator_available() == True:
+    if is_accelerator_available() is True:
         return edgeiq.Engine.DNN_OPENVINO
     return edgeiq.Engine.DNN
 
@@ -26,7 +26,7 @@ def object_detector(model, should_log=True):
     od = edgeiq.ObjectDetection(model)
     e = engine()
     od.load(e)
-    if should_log == True:
+    if should_log is True:
         print("alwaysai.py: object_detector: Engine: {}".format(od.engine))
         print("alwaysai.py: object_detector: Accelerator: {}\n".format(
             od.accelerator))
@@ -38,7 +38,9 @@ ENTER_CALLBACK = None
 EXIT_CALLBACK = None
 
 
-def start_detection(config, did_start_callback, enter_callback, exit_callback, did_end_object_callback, should_log=True):
+def start_detection(
+        config, did_start_callback, enter_callback, exit_callback,
+        did_end_object_callback, should_log=True):
     """
     Enable features dependent on config and pass callback down to actual detection functions
     """
@@ -137,7 +139,7 @@ def start_video_detection_with_streamer(
             frame = video_stream.read()
 
             # Print out the frame size
-            if displayed_frame_size == False:
+            if displayed_frame_size is False:
                 height, width, channels = frame.shape
                 print('alwaysai.py: start_video_detection_with_streamer: frame w x h: {} x {}'.format(
                     width, height))
@@ -200,7 +202,7 @@ def start_video_detection_with_streamer(
             # Check exit conditions
             # File video streams need to check for additional frames before stopping
             more = getattr(video_stream, "more", None)
-            if callable(more) and video_stream.more() == False:
+            if callable(more) and video_stream.more() is False:
                 print(
                     'alwaysai.py: start_video_detection_with_streamer: file video stream ended')
                 break
@@ -242,7 +244,7 @@ def zones_from_config(zones_config):
     result = []
     for zone_config in zones_config:
         zone = alwaysai_configs.Zone(zone_config)
-        if zone.is_box_available() == False:
+        if zone.is_box_available() is False:
             continue
         zone.box = edgeiq.BoundingBox(
             zone.start_x, zone.start_y, zone.end_x, zone.end_y)

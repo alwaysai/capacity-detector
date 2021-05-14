@@ -1,9 +1,9 @@
 class CentroidTracker:
-        def __init__(self, config):
-            '''
-            '''
-            self.deregister_frames = config.get('deregister_frames', 50)
-            self.max_distance = config.get('max_distance', 50)
+    def __init__(self, config):
+        '''
+        '''
+        self.deregister_frames = config.get('deregister_frames', 50)
+        self.max_distance = config.get('max_distance', 50)
 
 
 class ObjectDetector:

@@ -2,9 +2,6 @@
 import file_manager
 import alwaysai
 import direction_manager
-import os
-import post
-import time
 import comm
 
 

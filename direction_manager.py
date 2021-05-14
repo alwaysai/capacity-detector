@@ -3,6 +3,7 @@ import time
 ENTER_KEY = 'in_entry'
 EXIT_KEY = 'in_exit'
 
+
 class DirectionManager:
     '''
     Keeps track of object times when they enter an entry or exit zone. The order
@@ -77,4 +78,3 @@ class DirectionManager:
 
     def _add_new(self, object_id, dtime):
         self.records[object_id] = {ENTER_KEY: dtime}
-

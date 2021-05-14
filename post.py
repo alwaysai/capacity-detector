@@ -1,6 +1,4 @@
 import requests
-import cv2
-import base64
 
 '''
 Handles delivery of data to specified endpoint
