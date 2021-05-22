@@ -1,5 +1,5 @@
 # Capacity Detector
-This application is meant to detect people from a live or recorded videostream and determine if they are entering or exiting a location. That info is then can be sent via a POST call to a URL endpoint for processing.
+This application is meant to detect people from a live or recorded video stream and determine if they are entering or exiting a location. That info is then can be sent via a POST call to a URL endpoint for processing.
 
 
 **ENTRY-EXIT ZONES**
