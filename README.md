@@ -151,7 +151,8 @@ Frame x,y beging with 0,0 in the upper-left hand corner of the frame.
 ## Support
 Docs: https://dashboard.alwaysai.co/docs/getting_started/introduction.html
 
-Community Discord: https://discord.gg/rjDdRPT
+Community Discord: https://discord.gg/alwaysai
 
 Email: support@alwaysai.co
+
 
